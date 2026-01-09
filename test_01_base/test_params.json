@@ -1,0 +1,20 @@
+{
+  "name": "test_01_base",
+  "description": "基础配置",
+  "params": {
+    "use_textline_orientation": true,
+    "lang": "ch"
+  },
+  "metrics": {
+    "total_pages": 3,
+    "valid_pages": 3,
+    "total_lines": 65,
+    "total_chars": 2273,
+    "avg_confidence": 0.9916916333712065,
+    "chars_per_line": 34.96923076923077,
+    "lines_per_page": 21.666666666666668,
+    "success_rate": 1.0
+  },
+  "score": 96.16766533484827,
+  "timestamp": "2026-01-09T09:36:45.032966"
+}
