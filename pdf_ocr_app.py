@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 import os
-import sys
 import json
-import shutil
 import time
 from pathlib import Path
 from datetime import datetime
@@ -59,12 +57,30 @@ class PDFOCRApp:
         self.status_label = ttk.Label(main_frame, text="准备就绪")
         self.status_label.grid(row=3, column=0, columnspan=3, sticky=tk.W, pady=5)
         
-        ttk.Label(main_frame, text="识别文本:").grid(row=4, column=0, sticky=tk.W, pady=5)
+        # 创建分割区域的框架
+        split_frame = ttk.Frame(main_frame)
+        split_frame.grid(row=4, column=0, columnspan=3, sticky="wens", pady=5)
+        split_frame.columnconfigure(0, weight=1)
+        split_frame.columnconfigure(1, weight=2)
+        split_frame.rowconfigure(0, weight=1)
         
-        self.text_display = scrolledtext.ScrolledText(main_frame, wrap=tk.WORD, height=20)
-        self.text_display.grid(row=5, column=0, columnspan=3, sticky="wens", pady=5)
+        # 左侧文本显示区域 (1/3)
+        ttk.Label(split_frame, text="识别文本:").grid(row=0, column=0, sticky=tk.W, pady=5)
+        self.text_display = scrolledtext.ScrolledText(split_frame, wrap=tk.WORD)
+        self.text_display.grid(row=1, column=0, sticky="wens", padx=(0, 5))
         
-        main_frame.rowconfigure(5, weight=1)
+        # 右侧图像显示区域 (2/3)
+        ttk.Label(split_frame, text="正在处理的图像:").grid(row=0, column=1, sticky=tk.W, pady=5)
+        self.image_frame = ttk.Frame(split_frame, relief="sunken", borderwidth=1)
+        self.image_frame.grid(row=1, column=1, sticky="wens")
+        self.image_frame.columnconfigure(0, weight=1)
+        self.image_frame.rowconfigure(0, weight=1)
+        
+        # 创建图像标签
+        self.image_label = ttk.Label(self.image_frame)
+        self.image_label.grid(row=0, column=0, sticky="nsew")
+        
+        main_frame.rowconfigure(4, weight=1)
         
     def init_ocr(self):
         try:
@@ -104,6 +120,40 @@ class PDFOCRApp:
         self.text_display.insert(tk.END, text + "\n")
         self.text_display.see(tk.END)
         self.root.update()
+        
+    def update_image(self, image_path):
+        try:
+            img = Image.open(image_path)
+            
+            # 获取图像框架的尺寸
+            width = self.image_frame.winfo_width()
+            height = self.image_frame.winfo_height()
+            
+            # 计算缩放比例，保持宽高比
+            if width > 0 and height > 0:
+                img_ratio = img.width / img.height
+                frame_ratio = width / height
+                
+                if img_ratio > frame_ratio:
+                    new_width = width
+                    new_height = int(width / img_ratio)
+                else:
+                    new_height = height
+                    new_width = int(height * img_ratio)
+                
+                # 缩放图像
+                img = img.resize((new_width, new_height), Image.LANCZOS)
+                
+                # 转换为tkinter可用的格式
+                from PIL import ImageTk
+                photo = ImageTk.PhotoImage(img)
+                
+                # 更新图像标签
+                self.image_label.config(image=photo)
+                self.image_label.image = photo  # 保持引用，防止被垃圾回收
+                self.root.update()
+        except Exception as e:
+            print(f"更新图像失败: {str(e)}")
         
     def start_conversion(self):
         if not self.pdf_path:
@@ -169,6 +219,9 @@ class PDFOCRApp:
                 pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
                 img_path = self.temp_dir / f"page_{page_num + 1:03d}.png"
                 pix.save(img_path)
+                
+                # 更新显示当前处理的图像
+                self.update_image(str(img_path))
                 
                 self.update_status(f"正在识别第 {page_num + 1}/{total_pages} 页文本...")
                 result = self.ocr.predict(str(img_path))
@@ -275,7 +328,7 @@ class PDFOCRApp:
 
 def main():
     root = tk.Tk()
-    app = PDFOCRApp(root)
+    PDFOCRApp(root)
     root.mainloop()
 
 if __name__ == "__main__":
