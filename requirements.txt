@@ -2,3 +2,5 @@ paddlepaddle
 paddleocr
 pymupdf
 Pillow
+requests
+python-dotenv
